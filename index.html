@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bellman-Ford · Simulador interactivo</title>
+<style>
+:root{
+  --papel:#FFFFFF; --lienzo:#FCFDFE; --suave:#F6F8FB; --borde:#E3E8EF; --borde2:#CBD5E1;
+  --tinta:#0F172A; --texto:#334155; --tenue:#64748B; --gris:#94A3B8;
+  --indigo:#4338CA; --indigo-l:#EEF0FF;
+  --ambar:#B45309; --ambar-l:#FEF6E7;
+  --verde:#047857; --verde-l:#ECFBF4;
+  --rojo:#B91C1C; --rojo-l:#FEF0F0;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--papel);color:var(--texto);font-family:var(--serif);font-size:16.5px;line-height:1.65}
+:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+
+header{border-bottom:1px solid var(--borde);padding:26px 32px 0}
+.marca{display:flex;flex-wrap:wrap;align-items:baseline;gap:16px}
+h1{margin:0;font:400 31px/1.2 var(--serif);color:var(--tinta);letter-spacing:-.01em}
+h1 em{font-style:italic;color:var(--indigo)}
+.sub{color:var(--tenue);font-size:14px;font-family:var(--sans)}
+nav{display:flex;gap:2px;margin-top:20px;flex-wrap:wrap}
+nav button{background:none;border:none;border-bottom:2px solid transparent;color:var(--tenue);
+  font:500 14.5px var(--sans);padding:10px 16px;cursor:pointer;transition:color .15s,border-color .15s}
+nav button:hover{color:var(--tinta)}
+nav button[aria-selected="true"]{color:var(--indigo);border-bottom-color:var(--indigo)}
+
+main{padding:28px 32px 72px;max-width:1560px}
+section[hidden]{display:none}
+h2{font:400 25px/1.3 var(--serif);color:var(--tinta);margin:0 0 6px}
+.lead{color:var(--tenue);font-size:15.5px;margin:0 0 22px;max-width:78ch}
+
+.split{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);gap:22px;align-items:start}
+@media(max-width:1120px){.split{grid-template-columns:1fr}}
+.tarjeta{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:18px}
+.tarjeta h3{margin:0 0 14px;font:600 11.5px var(--sans);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--gris)}
+
+.barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+button.bt,select,input[type=text],input[type=number]{
+  background:var(--papel);color:var(--texto);border:1px solid var(--borde2);border-radius:8px;
+  padding:8px 14px;font:500 14px var(--sans);cursor:pointer;transition:border-color .15s,background .15s}
+button.bt:hover{border-color:var(--indigo);color:var(--indigo)}
+button.bt[aria-pressed="true"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+button.bt:disabled{opacity:.42;cursor:not-allowed}
+button.pri{background:var(--indigo);color:#fff;border-color:var(--indigo);font-weight:600}
+button.pri:hover{background:#3730A3;color:#fff}
+input[type=range]{accent-color:var(--indigo);vertical-align:middle}
+label.en{color:var(--tenue);font:13.5px var(--sans);display:inline-flex;align-items:center;gap:8px}
+
+svg.lienzo{width:100%;height:452px;background:var(--lienzo);border:1px solid var(--borde);
+  border-radius:10px;display:block;touch-action:none}
+.edge line{stroke:#A9B4C4;stroke-width:1.8;transition:stroke .28s ease,stroke-width .28s ease}
+.edge text{fill:var(--tenue);font:600 14px var(--mono);transition:fill .28s ease}
+.edge rect{fill:var(--lienzo)}
+.edge.neg text{fill:var(--rojo)}
+.edge.activa line{stroke:#D97706;stroke-width:3.4}
+.edge.activa text{fill:var(--ambar)}
+.edge.mejora line{stroke:#059669;stroke-width:3.6}
+.edge.mejora text{fill:var(--verde)}
+.edge.ciclo line{stroke:#DC2626;stroke-width:3.6}
+.edge.optima line{stroke:#059669;stroke-width:3}
+
+.node circle{fill:var(--papel);stroke:#64748B;stroke-width:2;
+  transition:stroke .28s ease,stroke-width .28s ease,fill .28s ease}
+.node.origen circle{fill:var(--indigo-l);stroke:var(--indigo);stroke-width:2.5}
+.node.activa circle{stroke:#D97706;stroke-width:3.4}
+.node.ciclo circle{stroke:#DC2626;stroke-width:3.4;fill:var(--rojo-l)}
+.node text.id{fill:var(--tinta);font:600 18px var(--serif)}
+.node text.d{fill:var(--indigo);font:700 14px var(--mono);transition:fill .2s}
+.node.pulso text.d{animation:saltito .5s ease}
+@keyframes saltito{
+  0%{transform:scale(1)}35%{transform:scale(1.5);fill:#059669}100%{transform:scale(1)}
+}
+
+.tiras{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 10px}
+.tira{background:var(--suave);border:1px solid var(--borde);border-radius:999px;
+  padding:5px 14px;font:600 13px var(--sans);color:var(--tenue)}
+.tira b{color:var(--indigo);font-weight:700;font-family:var(--mono)}
+
+.detalle{border:1px solid var(--borde);border-radius:10px;overflow:hidden}
+.detalle .cab{background:var(--suave);padding:9px 16px;font:600 12px var(--sans);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--gris);border-bottom:1px solid var(--borde)}
+.detalle .cuerpo{padding:14px 16px;min-height:132px}
+.fila{display:grid;grid-template-columns:118px 1fr;gap:12px;padding:3px 0;align-items:baseline}
+.fila dt{font:600 12.5px var(--sans);color:var(--gris);text-transform:uppercase;letter-spacing:.05em}
+.fila dd{margin:0;font:15px var(--mono);color:var(--tinta)}
+.fila dd.si{color:var(--verde);font-weight:700}
+.fila dd.no{color:var(--tenue)}
+.narracion{font:15.5px var(--serif);color:var(--texto);margin:0 0 12px;padding-bottom:12px;
+  border-bottom:1px dashed var(--borde)}
+.detalle.exito .cab{background:var(--verde-l);color:var(--verde)}
+.detalle.falla .cab{background:var(--rojo-l);color:var(--rojo)}
+.detalle.falla .narracion{color:var(--rojo)}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px;font-family:var(--sans)}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--borde)}
+th{color:var(--gris);font:600 11.5px var(--sans);letter-spacing:.07em;text-transform:uppercase}
+td.n{font-family:var(--mono);color:var(--indigo);font-weight:600}
+td.r{font-family:var(--mono);font-size:13px;color:var(--tenue)}
+tr.cambio td{background:var(--verde-l)}
+tr.mal td.n{color:var(--rojo)}
+
+.pestanas{display:flex;gap:3px;margin-bottom:12px}
+.pestanas button{background:none;border:1px solid transparent;border-radius:7px;color:var(--tenue);
+  font:600 13px var(--sans);padding:6px 13px;cursor:pointer}
+.pestanas button[aria-selected="true"]{background:var(--suave);border-color:var(--borde);color:var(--indigo)}
+pre.codigo{margin:0;background:var(--lienzo);border:1px solid var(--borde);border-radius:9px;
+  padding:12px 0;overflow:auto;max-height:392px;font:13px/1.72 var(--mono)}
+pre.codigo .ln{display:block;padding:0 15px;white-space:pre;color:#475569;
+  border-left:3px solid transparent;transition:background .2s,border-color .2s}
+pre.codigo .ln.on{background:var(--ambar-l);border-left-color:#D97706;color:var(--tinta)}
+pre.codigo .ln.on.ok{background:var(--verde-l);border-left-color:#059669}
+
+.vivo{margin-top:12px;background:var(--suave);border:1px solid var(--borde);border-radius:9px;padding:12px 14px}
+.vivo .et{font:600 11.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gris);margin-bottom:6px}
+.vivo .ex{font:15px var(--mono);color:var(--tinta);word-break:break-word}
+.vivo .ex .val{color:var(--indigo);font-weight:700}
+.vivo .ex .res{font-weight:700}
+.vivo .ex .res.si{color:var(--verde)}
+.vivo .ex .res.no{color:var(--tenue)}
+
+.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:940px){.rejilla{grid-template-columns:1fr}}
+.leyenda{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font:13.5px var(--sans);color:var(--tenue)}
+.leyenda i{display:inline-block;width:22px;height:3px;vertical-align:middle;margin-right:8px;border-radius:2px}
+.nota{color:var(--tenue);font-size:13.5px;font-family:var(--sans);margin-top:12px}
+.grande{font:700 30px var(--mono);color:var(--indigo)}
+.ayuda{color:var(--gris);font:13.5px var(--sans);margin-top:11px}
+.aviso{border-left:3px solid var(--indigo);background:var(--suave);padding:12px 16px;
+  border-radius:0 8px 8px 0;font-size:15px}
+.aviso.bien{border-left-color:#059669;background:var(--verde-l)}
+.aviso.mal{border-left-color:#DC2626;background:var(--rojo-l);color:var(--rojo)}
+
+#marco{position:relative}
+.flotante{position:absolute;z-index:20;background:var(--papel);border:1px solid var(--borde2);
+  border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:12px 14px;
+  display:flex;flex-direction:column;gap:9px;font-family:var(--sans);min-width:212px}
+.flotante[hidden]{display:none}
+.pct{font:600 12.5px var(--sans);color:var(--tenue);margin-left:10px}
+.pct.listo{color:var(--verde)}
+.veredicto{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+  padding:11px 16px;border:1px solid var(--borde);border-radius:9px;margin-bottom:8px;background:var(--papel)}
+.veredicto b{font:600 15px var(--sans);color:var(--tinta)}
+.veredicto .sello{font:700 14px var(--sans)}
+.veredicto .sello.ok{color:var(--verde)}
+.veredicto .sello.mal{color:var(--rojo)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+.stats div{background:var(--suave);border:1px solid var(--borde);border-radius:9px;padding:10px 12px}
+.stats dt{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--gris)}
+.stats dd{margin:3px 0 0;font:700 19px var(--mono);color:var(--indigo)}
+.edge.destacada line{stroke:#4338CA;stroke-width:3.2}
+.barra-sec{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;
+  padding-top:12px;border-top:1px solid var(--borde)}
+.barra-sec .rot{font:600 11.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gris)}
+.glosario dt{font:600 15px var(--sans);color:var(--indigo);margin-top:14px}
+.glosario dt:first-child{margin-top:0}
+.glosario dd{margin:3px 0 0;font-size:15px;color:var(--texto)}
+.intro{border-left:3px solid var(--indigo);background:var(--suave);padding:14px 18px;
+  border-radius:0 9px 9px 0;margin:0 0 24px;max-width:96ch}
+.intro b{color:var(--tinta)}
+.flotante .et{font:600 12px var(--sans);color:var(--tenue)}
+.flotante .et b{color:var(--indigo);font-family:var(--mono)}
+.flotante .acc{display:flex;gap:7px}
+.flotante input{width:100%}
+.progreso{height:6px;background:var(--borde);border-radius:99px;overflow:hidden;margin-top:12px}
+.progreso i{display:block;height:100%;width:0;background:var(--indigo);transition:width .12s linear}
+.formula{font:14px var(--mono);color:var(--tenue);margin-top:14px;padding-top:12px;border-top:1px solid var(--borde)}
+.formula b{color:var(--indigo)}
+body.presentacion .solo-edicion{display:none!important}
+td.motivo{font:13px var(--sans);color:var(--rojo);max-width:340px}
+details{border-bottom:1px solid var(--borde);padding:2px 0}
+details:last-child{border-bottom:none}
+details summary{cursor:pointer;padding:11px 4px;font:600 15px var(--sans);color:var(--tinta);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"+";display:inline-block;width:20px;color:var(--indigo);font-weight:700}
+details[open] summary::before{content:"−"}
+details p{margin:0 0 14px 24px;font-size:15px;color:var(--texto);max-width:80ch}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <h1>Algoritmo de <em>Bellman-Ford</em></h1>
+    <span class="sub">Caminos mínimos en grafos con pesos negativos · Proyecto Integrador de Algoritmos de Grafos</span>
+  </div>
+  <nav role="tablist">
+    <button role="tab" id="t-sim" aria-selected="true"  onclick="verSeccion('sim')">Simulador</button>
+    <button role="tab" id="t-cmp" aria-selected="false" onclick="verSeccion('cmp')">Comparación con Dijkstra</button>
+    <button role="tab" id="t-arb" aria-selected="false" onclick="verSeccion('arb')">Arbitraje de divisas</button>
+    <button role="tab" id="t-esc" aria-selected="false" onclick="verSeccion('esc')">Prueba de escala</button>
+    <button role="tab" id="t-teo" aria-selected="false" onclick="verSeccion('teo')">Teoría y preguntas</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ SIMULADOR ============ -->
+<section id="sec-sim">
+  <h2>Simulación paso a paso</h2>
+  <p class="lead">Cada paso <em>relaja</em> una arista: comprueba si llegar al destino pasando por ella cuesta menos que el valor anotado. A la derecha, la línea de código en ejecución y los valores reales sustituidos en ella.</p>
+  <p class="intro"><b>La idea, sin tecnicismos.</b> Imagina que anotas en una libreta cuánto te cuesta llegar a cada ciudad, y al principio escribes «infinito» en todas porque no conoces ninguna ruta. Después recorres una y otra vez la lista completa de carreteras preguntando lo mismo: <em>si voy por aquí, ¿me sale más barato de lo que tengo anotado?</em> Cada vez que la respuesta es sí, tachas el número y escribes el nuevo. Cuando una vuelta entera no te obliga a tachar nada, ya tienes las rutas más baratas. Eso es Bellman-Ford, y funciona incluso si alguna carretera te devuelve dinero en vez de cobrarte.</p>
+
+  <div class="split">
+    <div>
+      <div class="tarjeta">
+        <div class="barra">
+          <select id="ejemplo" onchange="cargarEjemplo(this.value)" aria-label="Grafo de ejemplo">
+            <option value="red">Red de 5 nodos (caso del proyecto)</option>
+            <option value="buses">Buses del Ecuador (tarifas reales ANT)</option>
+            <option value="electrico">Vehículo eléctrico en la Sierra (pesos negativos reales)</option>
+            <option value="ciclo">Grafo con ciclo negativo</option>
+            <option value="vacio">Lienzo vacío</option>
+          </select>
+          <label class="en">Origen
+            <select id="origen" onchange="cambiarOrigen(this.value)" aria-label="Nodo origen"></select>
+          </label>
+          <span style="flex:1"></span>
+          <label class="en"><input type="checkbox" id="presenta" onchange="modoPresentacion(this.checked)"> Modo presentación</label>
+          <button class="bt solo-edicion" id="m-mover"  aria-pressed="true"  onclick="setModo('mover')">Mover</button>
+          <button class="bt solo-edicion" id="m-nodo"   aria-pressed="false" onclick="setModo('nodo')">Nodo</button>
+          <button class="bt solo-edicion" id="m-arista" aria-pressed="false" onclick="setModo('arista')">Arista</button>
+          <button class="bt solo-edicion" id="m-borrar" aria-pressed="false" onclick="setModo('borrar')">Eliminar</button>
+        </div>
+
+        <p class="nota" id="desc-ejemplo" style="margin:0 0 12px"></p>
+        <div id="marco">
+        <svg class="lienzo" id="lienzo" viewBox="0 0 920 452" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="Grafo dirigido editable">
+          <defs>
+            <pattern id="puntos" width="26" height="26" patternUnits="userSpaceOnUse">
+              <circle cx="1.5" cy="1.5" r="1.1" fill="#E6EBF2"></circle>
+            </pattern>
+            <marker id="p0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M1.5 1.5L9 5L1.5 8.5" fill="none" stroke="#A9B4C4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></marker>
+            <marker id="p1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M1.5 1.5L9 5L1.5 8.5" fill="none" stroke="#D97706" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></marker>
+            <marker id="p2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M1.5 1.5L9 5L1.5 8.5" fill="none" stroke="#059669" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></marker>
+            <marker id="p3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M1.5 1.5L9 5L1.5 8.5" fill="none" stroke="#DC2626" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></marker>
+          </defs>
+          <rect width="920" height="452" fill="url(#puntos)"></rect>
+          <g id="capa-aristas"></g>
+          <g id="capa-nodos"></g>
+        </svg>
+          <div class="flotante" id="editor-peso" hidden>
+            <span class="et">Peso de la arista <b id="ep-etq"></b></span>
+            <input type="number" id="ep-val" step="any" value="1" aria-label="Peso de la arista">
+            <div class="acc">
+              <button class="bt pri" onclick="confirmarPeso()">Añadir</button>
+              <button class="bt" onclick="cancelarPeso()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+        <p class="ayuda" id="ayuda">Arrastra los nodos para acomodarlos. Cambia de modo para editar el grafo.</p>
+        <div class="barra-sec">
+          <span class="rot">Grafo</span>
+          <button class="bt solo-edicion" id="g-azar" onclick="grafoAleatorio()">Aleatorio</button>
+          <button class="bt" id="g-orden" onclick="ordenarCircular()">Ordenar</button>
+          <button class="bt" id="g-exp" onclick="exportarGrafo()">Exportar</button>
+          <button class="bt solo-edicion" id="g-imp" onclick="document.getElementById('archivo').click()">Importar</button>
+          <input type="file" id="archivo" accept="application/json,.json" hidden onchange="importarGrafo(event)">
+          <span style="flex:1"></span>
+          <label class="en">Resaltar ruta hacia
+            <select id="ruta-dest" onchange="destacarRuta(this.value)" aria-label="Resaltar ruta"></select>
+          </label>
+          <span class="tira" id="costo-ruta" hidden></span>
+        </div>
+
+        <div class="barra" style="margin-top:16px">
+          <button class="bt pri" id="b-run" onclick="ejecutar()">Ejecutar</button>
+          <button class="bt" id="b-play" onclick="alternarPlay()" disabled>Reproducir</button>
+          <button class="bt" id="b-prev" onclick="mover(-1)" disabled>Anterior</button>
+          <button class="bt" id="b-next" onclick="mover(1)"  disabled>Siguiente</button>
+          <button class="bt" id="b-fin"  onclick="alFinal()" disabled>Ir al final</button>
+          <button class="bt" id="b-cero" onclick="volverAlInicio()" disabled>Reiniciar</button>
+          <label class="en">Pausa entre pasos
+            <input type="range" id="vel" min="150" max="1800" step="30" value="850" style="width:118px"
+                   oninput="etiquetaVelocidad(this.value)">
+            <span class="tira" style="padding:3px 10px"><b id="v-vel">850 ms · Normal</b></span>
+          </label>
+        </div>
+
+        <div style="display:flex;align-items:center;margin-top:16px">
+          <div class="progreso" style="flex:1;margin:0"><i id="barra-sim"></i></div>
+          <span class="pct" id="pct-sim">0 %</span>
+        </div>
+        <div class="tiras">
+          <span class="tira">Iteración <b id="c-iter">—</b></span>
+          <span class="tira">Paso <b id="c-paso">0 / 0</b></span>
+          <span class="tira">Actualizaciones <b id="c-rel">0</b></span>
+        </div>
+
+        <div class="detalle" id="detalle">
+          <div class="cab" id="det-cab">Detalle del paso</div>
+          <div class="cuerpo">
+            <p class="narracion" id="det-narra">Pulsa «Ejecutar» para calcular los pasos del algoritmo.</p>
+            <dl id="det-datos" style="margin:0"></dl>
+          </div>
+        </div>
+
+        <div class="leyenda">
+          <span><i style="background:#B91C1C;height:2px"></i>Peso negativo</span>
+          <span><i style="background:#D97706"></i>Arista en revisión</span>
+          <span><i style="background:#059669"></i>Distancia mejorada</span>
+          <span><i style="background:#DC2626"></i>Ciclo negativo</span>
+        </div>
+      </div>
+
+      <div class="tarjeta" style="margin-top:22px">
+        <h3>Distancias desde el origen
+          <button class="bt" style="float:right;padding:4px 11px;font-size:12.5px;text-transform:none;letter-spacing:0"
+                  onclick="exportarResultados()">Exportar CSV</button></h3>
+        <table>
+          <thead><tr><th>Nodo</th><th>Distancia</th><th>Predecesor</th><th>Ruta</th></tr></thead>
+          <tbody id="tabla-dist"></tbody>
+        </table>
+      </div>
+
+      <div class="tarjeta" style="margin-top:22px">
+        <h3>Resumen por pasada</h3>
+        <table id="tabla-pasadas"><tbody><tr><td style="color:var(--gris)">Ejecuta el algoritmo para ver el resumen.</td></tr></tbody></table>
+        <p class="nota">Cada fila es el estado de las distancias al terminar una pasada completa sobre todas las aristas. Cuando una pasada no produce ningún cambio, el algoritmo ya convergió.</p>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3>Código en ejecución</h3>
+      <div class="pestanas" role="tablist">
+        <button role="tab" id="k-pseudo" aria-selected="true"  onclick="verCodigo('pseudo')">Pseudocódigo</button>
+        <button role="tab" id="k-python" aria-selected="false" onclick="verCodigo('python')">Python</button>
+      </div>
+      <pre class="codigo" id="panel-codigo"></pre>
+      <div class="vivo">
+        <div class="et">Con los valores de este paso</div>
+        <div class="ex" id="linea-viva">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPARACIÓN ============ -->
+<section id="sec-cmp" hidden>
+  <h2>Comparación con Dijkstra</h2>
+  <p class="lead">Dijkstra fija cada nodo la primera vez que lo extrae de la cola y nunca lo reabre. Ese atajo lo hace más rápido, pero deja de ser válido cuando una arista negativa aparece después. Ambos algoritmos se ejecutan sobre el grafo cargado en el simulador.</p>
+  <div class="barra">
+    <button class="bt pri" onclick="cargarTrampaYComparar()">Cargar el grafo del caso y comparar</button>
+    <button class="bt" onclick="comparar()">Comparar el grafo actual</button>
+  </div>
+  <div id="veredicto-cmp" style="margin-bottom:16px"></div>
+  <div class="tarjeta">
+    <table>
+      <thead><tr><th>Nodo</th><th>Bellman-Ford</th><th>Dijkstra</th><th>¿Coinciden?</th><th>Motivo de la diferencia</th></tr></thead>
+      <tbody id="tabla-cmp"><tr><td colspan="5" style="color:var(--gris)">Sin resultados todavía.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="aviso" id="msg-cmp" style="margin-top:18px">Carga el grafo de 5 nodos y ejecuta la comparación.</div>
+</section>
+
+<!-- ============ ARBITRAJE ============ -->
+<section id="sec-arb" hidden>
+  <h2>Arbitraje de divisas</h2>
+  <p class="lead">Si el producto de las tasas de un ciclo supera 1, cambiar de moneda en moneda y volver a la inicial deja ganancia. Tomando peso&nbsp;=&nbsp;−ln(tasa), ese producto mayor que 1 se vuelve una suma de pesos negativa: detectar arbitraje es detectar un ciclo negativo.</p>
+  <div class="rejilla">
+    <div class="tarjeta">
+      <h3>Tasas de cambio</h3>
+      <table>
+        <thead><tr><th>De</th><th>A</th><th>Tasa</th><th></th></tr></thead>
+        <tbody id="tabla-tasas"></tbody>
+      </table>
+      <div class="barra" style="margin-top:16px">
+        <input type="text" id="a-de" placeholder="USD" size="5" aria-label="Moneda origen">
+        <input type="text" id="a-a" placeholder="EUR" size="5" aria-label="Moneda destino">
+        <input type="number" id="a-tasa" placeholder="0.92" step="any" style="width:112px" aria-label="Tasa">
+        <button class="bt" onclick="agregarTasa()">Agregar</button>
+        <button class="bt" onclick="reiniciarTasas()">Restaurar</button>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h3>Resultado</h3>
+      <div class="barra"><button class="bt pri" onclick="buscarArbitraje()">Buscar arbitraje</button></div>
+      <div class="aviso" id="msg-arb">Pulsa «Buscar arbitraje» para analizar las tasas.</div>
+      <div id="detalle-arb" style="margin-top:18px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ESCALA ============ -->
+<section id="sec-esc" hidden>
+  <h2>Prueba de escala</h2>
+  <p class="lead">El algoritmo recorre todas las aristas en cada una de las V−1 iteraciones, de ahí su complejidad O(V·E). Genera un grafo grande y observa cómo al duplicar los nodos el tiempo se cuadruplica.</p>
+  <div class="tarjeta">
+    <div class="barra">
+      <label class="en">Nodos <input type="range" id="n-nodos" min="10" max="2000" step="10" value="200" style="width:200px" oninput="document.getElementById('v-nodos').textContent=this.value"></label>
+      <span class="tira"><b id="v-nodos">200</b></span>
+      <label class="en">Aristas por nodo <input type="range" id="n-grado" min="2" max="12" step="1" value="5" style="width:140px" oninput="document.getElementById('v-grado').textContent=this.value"></label>
+      <span class="tira"><b id="v-grado">5</b></span>
+      <label class="en"><input type="checkbox" id="optimiza"> Detener al no haber cambios</label>
+      <button class="bt pri" id="b-esc" onclick="probarEscala()">Generar y ejecutar</button>
+    </div>
+    <div class="aviso" id="msg-esc">Los grafos generados son acíclicos, así que admiten pesos negativos sin crear ciclos negativos.</div>
+    <div class="progreso"><i id="barra-esc"></i></div>
+    <p class="formula" id="formula-esc">Peor caso: (V − 1) × E relajaciones.</p>
+    <table style="margin-top:18px">
+      <thead><tr><th>Nodos (V)</th><th>Aristas (E)</th>
+        <th title="Cuántas veces se evaluó la condición de relajación, se aplicara o no">Relajaciones revisadas</th>
+        <th title="Pasadas completas sobre el conjunto de aristas">Iteraciones</th>
+        <th title="Tiempo de cálculo, sin contar las pausas que ceden el control al navegador">Tiempo</th></tr></thead>
+      <tbody id="tabla-esc"><tr><td colspan="5" style="color:var(--gris)">Sin mediciones todavía.</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ TEORÍA ============ -->
+<section id="sec-teo" hidden>
+  <h2>Teoría y preguntas frecuentes</h2>
+  <p class="lead">Lo que hay que poder responder sin mirar apuntes. Cada respuesta explica el <em>porqué</em>, no solo el <em>qué</em>.</p>
+
+  <div class="rejilla">
+    <div class="tarjeta">
+      <h3>Complejidad</h3>
+      <table>
+        <thead><tr><th>Medida</th><th>Valor</th><th>Razón</th></tr></thead>
+        <tbody>
+          <tr><td>Tiempo</td><td class="n">O(V · E)</td><td>V−1 pasadas, cada una sobre las E aristas</td></tr>
+          <tr><td>Espacio</td><td class="n">O(V)</td><td>Una distancia y un predecesor por nodo</td></tr>
+          <tr><td>Pesos negativos</td><td class="n">Sí</td><td>No cierra ningún nodo antes de tiempo</td></tr>
+          <tr><td>Ciclos negativos</td><td class="n">Los detecta</td><td>La pasada extra de verificación</td></tr>
+        </tbody>
+      </table>
+      <p class="nota">Dijkstra resuelve el mismo problema en O((V + E) log V), pero solo si ningún peso es negativo.</p>
+      <p class="intro" style="margin:16px 0 0"><b>En palabras simples:</b> el algoritmo revisa todas las carreteras del mapa, y repite esa revisión tantas veces como ciudades haya menos una. Si duplicas las ciudades, duplicas tanto el número de revisiones como el de carreteras, así que el tiempo total se multiplica por cuatro. Por eso se vuelve pesado en grafos grandes.</p>
+    </div>
+
+    <div class="tarjeta">
+      <h3>El algoritmo en cinco pasos</h3>
+      <table>
+        <tbody>
+          <tr><td class="n">1</td><td>Poner el origen en 0 y todos los demás nodos en infinito.</td></tr>
+          <tr><td class="n">2</td><td>Repetir V−1 veces el paso siguiente.</td></tr>
+          <tr><td class="n">3</td><td>Recorrer todas las aristas (u, v, peso) y comprobar si distancia[u] + peso mejora distancia[v].</td></tr>
+          <tr><td class="n">4</td><td>Si mejora, relajarla: actualizar la distancia y anotar u como predecesor de v.</td></tr>
+          <tr><td class="n">5</td><td>Hacer una pasada más: si algo todavía mejora, hay un ciclo de peso negativo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rejilla" style="margin-top:22px">
+    <div class="tarjeta">
+      <h3>Cuándo conviene usarlo</h3>
+      <table><tbody>
+        <tr><td>El grafo puede tener aristas de peso negativo.</td></tr>
+        <tr><td>Hace falta detectar ciclos negativos, no solo evitarlos.</td></tr>
+        <tr><td>Cada nodo conoce solo a sus vecinos: cálculo distribuido.</td></tr>
+        <tr><td>El grafo es pequeño o disperso, y la simplicidad importa más que la velocidad.</td></tr>
+      </tbody></table>
+    </div>
+    <div class="tarjeta">
+      <h3>Cuándo conviene evitarlo</h3>
+      <table><tbody>
+        <tr><td>Todos los pesos son no negativos: Dijkstra es más rápido.</td></tr>
+        <tr><td>El grafo es grande y denso: O(V · E) se vuelve costoso.</td></tr>
+        <tr><td>Se necesitan las distancias entre todos los pares: conviene Floyd-Warshall, O(V³).</td></tr>
+        <tr><td>El tiempo de respuesta es crítico y el grafo lo permite.</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-top:22px">
+    <h3>Conceptos clave</h3>
+    <dl class="glosario" style="margin:0">
+      <dt>Relajación</dt>
+      <dd>Comprobar si llegar a un nodo pasando por una arista concreta cuesta menos que la distancia anotada, y actualizarla si es así. Es la única operación que ejecuta el algoritmo, repetida miles de veces.</dd>
+      <dt>Predecesor</dt>
+      <dd>El nodo desde el que se llegó al actual por la ruta más barata conocida. Guardar esos enlaces permite reconstruir el camino completo hacia atrás, no solo saber cuánto cuesta.</dd>
+      <dt>Ciclo de peso negativo</dt>
+      <dd>Un recorrido que vuelve al punto de partida sumando un costo total menor que cero. Al poder repetirse infinitas veces, hace que no exista una respuesta mínima válida.</dd>
+      <dt>Arista dirigida</dt>
+      <dd>Una conexión que solo se puede recorrer en un sentido. Bellman-Ford las asume dirigidas: una conexión de doble sentido con peso negativo sería, por sí sola, un ciclo negativo.</dd>
+    </dl>
+  </div>
+
+  <div class="tarjeta" style="margin-top:22px">
+    <h3>Preguntas de control</h3>
+    <details><summary>¿Por qué exactamente V−1 pasadas, ni una más ni una menos?</summary>
+      <p>Un camino mínimo no repite nodos, así que a lo mucho tiene V−1 aristas. Cada pasada garantiza fijar al menos una arista más de cada camino mínimo, de modo que V−1 pasadas bastan para todos. Pasadas adicionales no mejoran nada: si algo cambia en la pasada V, no es una mejora sino la señal de un ciclo negativo.</p></details>
+    <details><summary>¿En qué momento exacto se equivoca Dijkstra con un peso negativo?</summary>
+      <p>En el instante en que extrae un nodo de la cola y lo marca como visitado. Ahí da su distancia por definitiva. Si más adelante aparece una arista negativa que llega a ese nodo, Dijkstra ya no lo reabre y conserva el valor equivocado.</p></details>
+    <details><summary>¿Qué es relajar una arista?</summary>
+      <p>Preguntar si llegar a v pasando por u cuesta menos que la distancia anotada para v. Si la respuesta es sí, se actualiza esa distancia y se registra que ahora se llega a v desde u.</p></details>
+    <details><summary>¿Para qué sirve el arreglo de predecesores?</summary>
+      <p>Las distancias solo dicen cuánto cuesta llegar, no por dónde. El arreglo de predecesores guarda de qué nodo se vino, así que recorriéndolo hacia atrás desde el destino se reconstruye la ruta completa.</p></details>
+    <details><summary>¿Qué pasa si hay un ciclo de peso negativo?</summary>
+      <p>No existe camino mínimo. Cada vuelta al ciclo reduce el costo, así que se podría bajar indefinidamente. Por eso el algoritmo no devuelve un número falso: reporta el error.</p></details>
+    <details><summary>¿Se puede detener antes de las V−1 pasadas?</summary>
+      <p>Sí. Si una pasada completa no produce ningún cambio, las distancias ya son definitivas y seguir es inútil. Es una optimización habitual y en grafos reales ahorra mucho tiempo, aunque el peor caso teórico sigue siendo O(V · E).</p></details>
+    <details><summary>¿Funciona con grafos no dirigidos que tengan aristas negativas?</summary>
+      <p>No. Una arista no dirigida de peso negativo se puede recorrer de ida y vuelta, y eso ya constituye un ciclo de peso negativo. Bellman-Ford asume aristas dirigidas.</p></details>
+    <details><summary>¿Qué diferencia hay con Floyd-Warshall?</summary>
+      <p>Bellman-Ford calcula las distancias desde un único origen en O(V · E). Floyd-Warshall las calcula entre todos los pares en O(V³). Ambos admiten pesos negativos y detectan ciclos negativos; la elección depende de si se necesita un origen o todos.</p></details>
+  </div>
+</section>
+
+</main>
+
+<script>
+"use strict";
+const INF = Infinity, NS = "http://www.w3.org/2000/svg", R = 26;
+
+let G = {nodos:[], aristas:[], origen:"A"};
+let eventos = [], idx = 0, timer = null, modo = "mover", pendiente = null;
+let vistaCodigo = "pseudo";
+let pasadas = [];
+let rutaDestacada = "";
+const ref = {aristas:[], nodos:{}};
+
+const EJEMPLOS = {
+  red:{ origen:"A",
+    desc:"Caso construido para la exposición: los pesos están elegidos a propósito para que Dijkstra devuelva 5 hacia D cuando la respuesta correcta es 1.",
+    nodos:[{id:"A",x:110,y:228},{id:"B",x:348,y:104},{id:"C",x:348,y:352},
+           {id:"E",x:596,y:104},{id:"D",x:812,y:228}],
+    aristas:[["A","B",4],["A","C",2],["B","C",3],["B","D",2],["B","E",3],
+             ["C","B",1],["C","D",4],["C","E",5],["E","D",-5]] },
+  buses:{ origen:"GYE",
+    desc:"Tarifas oficiales del transporte interprovincial en dólares (Resolución 020-DIR-2026-ANT de la ANT, vigentes desde el 1 de agosto de 2026). Todos los pesos son positivos, como ocurre siempre con precios de pasajes. Fíjate en el resultado hacia Quito.",
+    nodos:[{id:"ESM",x:300,y:70},{id:"TUL",x:700,y:60},{id:"UIO",x:620,y:158},
+           {id:"SDO",x:370,y:178},{id:"MTA",x:168,y:262},{id:"GYE",x:400,y:330},
+           {id:"LIB",x:140,y:390},{id:"CUE",x:700,y:352}],
+    aristas:[["GYE","UIO",14.66],["UIO","GYE",14.66],
+             ["UIO","CUE",17.25],["CUE","UIO",17.25],
+             ["GYE","CUE",11.50],["CUE","GYE",11.50],
+             ["GYE","SDO",9.92],["SDO","GYE",9.92],
+             ["SDO","UIO",4.67],["UIO","SDO",4.67],
+             ["GYE","MTA",7.19],["MTA","GYE",7.19],
+             ["UIO","ESM",11.07],["ESM","UIO",11.07],
+             ["GYE","ESM",16.39],["ESM","GYE",16.39],
+             ["UIO","TUL",8.77],["TUL","UIO",8.77],
+             ["GYE","LIB",5.97],["LIB","GYE",5.97]] },
+  electrico:{ origen:"UIO",
+    desc:"Consumo de energía en kWh de un vehículo eléctrico por la vía Quito–Papallacta–Baeza–Lago Agrio. Los tramos de bajada pronunciada tienen consumo negativo porque el frenado regenerativo devuelve más energía a la batería de la que el vehículo gasta en recorrerlos. Modelo: 2000 kg, 0,18 kWh/km de rodadura, 70 % de recuperación. Altitudes aproximadas.",
+    nodos:[{id:"UIO",x:110,y:250},{id:"VIR",x:245,y:115},{id:"PPT",x:385,y:170},
+           {id:"CUY",x:500,y:245},{id:"BAE",x:625,y:290},{id:"LAG",x:835,y:165},
+           {id:"TEN",x:690,y:415}],
+    aristas:[["UIO","VIR",17.66],["VIR","UIO",5.28],["VIR","PPT",-0.93],["PPT","VIR",7.35],
+             ["PPT","CUY",-0.62],["CUY","PPT",8.28],["CUY","BAE",1.77],["BAE","CUY",6.68],
+             ["BAE","TEN",12.7],["TEN","BAE",26.91],["BAE","LAG",20.0],["LAG","BAE",36.36],
+             ["TEN","LAG",31.6],["LAG","TEN",33.75]] },
+  ciclo:{ origen:"X",
+    desc:"El circuito X → Y → Z → X suma −1. Al ejecutarlo, el algoritmo lo detecta y marca en rojo los nodos cuya distancia queda indefinida.",
+    nodos:[{id:"X",x:210,y:136},{id:"Y",x:660,y:136},{id:"Z",x:435,y:360}],
+    aristas:[["X","Y",1],["Y","Z",-3],["Z","X",1]] },
+  vacio:{origen:null, desc:"Lienzo vacío: usa el modo Nodo para crear vértices y el modo Arista para conectarlos.", nodos:[], aristas:[]}
+};
+
+/* ---------- utilidades ---------- */
+const nodoPor = id => G.nodos.find(n=>n.id===id);
+const fmtN = x => x===INF ? "∞" : (x===-INF ? "−∞" : (Number.isInteger(x) ? String(x) : x.toFixed(2)));
+// Un nodo alcanzable desde un ciclo negativo no tiene distancia mínima: se muestra −∞.
+const valorMostrado = (e,id) =>
+  (e && e.afectados && e.afectados.indexOf(id)>=0) ? "−∞" : fmtN(e ? e.dist[id] : INF);
+const svgEl = t => document.createElementNS(NS,t);
+const $ = id => document.getElementById(id);
+
+/* ---------- algoritmo con eventos ---------- */
+function calcularEventos(){
+  const inicioCalculo = performance.now();
+  const ids = G.nodos.map(n=>n.id);
+  const dist = {}, pred = {};
+  ids.forEach(n=>{dist[n]=INF; pred[n]=null;});
+  if(G.origen) dist[G.origen] = 0;
+
+  const ev = [{fase:"init", linea:"init", rel:0, iter:0,
+    narra:`Se inicializan todas las distancias en infinito y la del origen ${G.origen} en 0.`,
+    datos:[["Origen",G.origen],["Distancias","todas ∞ salvo "+G.origen+" = 0"]],
+    dist:{...dist}, pred:{...pred}}];
+  let rel = 0;
+  pasadas = [{et:"Inicio", dist:{...dist}, cambios:null, iter:0}];
+
+  const V = ids.length;
+  for(let k=1;k<=Math.max(V-1,0);k++){
+    let cambiosK = 0;
+    ev.push({fase:"iter", linea:"iter", rel, iter:k,
+      narra:`Comienza la iteración ${k} de ${V-1}. Se volverán a revisar las ${G.aristas.length} aristas del grafo.`,
+      datos:[["Iteración",`${k} de ${V-1}`],["Aristas por revisar",String(G.aristas.length)]],
+      dist:{...dist}, pred:{...pred}});
+
+    for(const a of G.aristas){
+      const du = dist[a.u], dv = dist[a.v];
+      const suma = du===INF ? INF : du + a.w;
+      const mejora = du!==INF && suma < dv;
+      if(mejora){ dist[a.v] = suma; pred[a.v] = a.u; rel++; cambiosK++; }
+      ev.push({
+        fase: mejora ? "mejora" : "prueba", linea: mejora ? "mejora" : "prueba",
+        arista:a, mejora, du, dv, suma, rel, iter:k,
+        narra: du===INF
+          ? `El nodo ${a.u} todavía es inalcanzable, así que esta arista no puede aportar nada.`
+          : (mejora
+            ? `Llegar a ${a.v} pasando por ${a.u} cuesta ${fmtN(suma)}, menos que ${fmtN(dv)}. Se actualiza la distancia.`
+            : `Llegar a ${a.v} pasando por ${a.u} costaría ${fmtN(suma)}, que no mejora ${fmtN(dv)}. Se descarta.`),
+        datos:[
+          ["Arista", `${a.u} → ${a.v}   peso ${a.w}`],
+          ["Cálculo", du===INF ? `distancia[${a.u}] = ∞` : `${fmtN(du)} + (${a.w}) = ${fmtN(suma)}`],
+          ["Comparación", du===INF ? "no aplica" : `${fmtN(suma)} < ${fmtN(dv)}`],
+          ["Resultado", mejora
+            ? `distancia[${a.v}]: ${fmtN(dv)} → ${fmtN(suma)}   ·   predecesor[${a.v}] = ${a.u}`
+            : "sin cambios", mejora?"si":"no"]
+        ],
+        dist:{...dist}, pred:{...pred}});
+    }
+    pasadas.push({et:`Pasada ${k}`, dist:{...dist}, cambios:cambiosK, iter:k});
+  }
+
+  let ciclo = null;
+  for(const a of G.aristas){
+    const du = dist[a.u], dv = dist[a.v];
+    const suma = du===INF ? INF : du + a.w;
+    const malo = du!==INF && suma < dv;
+    ev.push({fase: malo?"error":"verifica", linea: malo?"error":"verifica",
+      arista:a, verificando:true, rel, iter:"V",
+      narra: malo
+        ? `Tras las ${V-1} iteraciones, la arista ${a.u} → ${a.v} todavía mejora la distancia. Eso solo es posible si existe un ciclo de peso negativo.`
+        : `Verificación de ${a.u} → ${a.v}: ya no mejora nada, como se esperaba.`,
+      datos:[
+        ["Arista", `${a.u} → ${a.v}   peso ${a.w}`],
+        ["Comprobación", du===INF ? "origen inalcanzable" : `${fmtN(suma)} < ${fmtN(dv)}`],
+        ["Resultado", malo ? "todavía mejora: hay ciclo negativo" : "estable", malo?"no":"si"]
+      ],
+      dist:{...dist}, pred:{...pred}});
+    if(malo){ ciclo = reconstruirCiclo(pred, a.v, V); break; }
+  }
+
+  if(ciclo){
+    const su = sumaCiclo(ciclo);
+    const afectados = nodosAfectados(ciclo);
+    const dat = [["Ciclo", ciclo.join(" → ")]];
+    if(su) dat.push(["Peso del ciclo", `${su.expr} = ${fmtN(su.total)}`, "no"]);
+    dat.push(["Distancia indefinida", `${afectados.join(", ")} (−∞)`, "no"]);
+    dat.push(["Conclusión","el problema no tiene solución","no"]);
+    ev.push({fase:"error", linea:"error", ciclo, afectados, error:true, rel, iter:"V",
+      narra:`El ciclo ${ciclo.join(" → ")} suma ${su?fmtN(su.total):"un valor negativo"}. Recorrerlo una y otra vez reduce la distancia sin límite, así que no existe camino mínimo.`,
+      datos:dat, dist:{...dist}, pred:{...pred}});
+  }else{
+    const primeraSinCambios = pasadas.findIndex(p=>p.cambios===0);
+    const nota = primeraSinCambios > 0
+      ? ` La pasada ${primeraSinCambios} no produjo ninguna relajación: a partir de ahí el algoritmo ya podía detenerse, y esa es la optimización de salida anticipada.`
+      : "";
+    ev.push({fase:"fin", linea:"retorna", fin:true, rel, iter:"fin",
+      narra:"No queda ninguna mejora posible: las distancias son definitivas y el algoritmo termina." + nota,
+      estadisticas:{
+        nodos: ids.length, aristas: G.aristas.length,
+        pasadas: pasadas.length-1, relajaciones: rel,
+        revisiones: (ids.length-1)*G.aristas.length + G.aristas.length,
+        ms: (performance.now()-inicioCalculo).toFixed(1)
+      },
+      datos:[["Actualizaciones", String(rel)],["Estado","distancias mínimas confirmadas","si"]],
+      dist:{...dist}, pred:{...pred}});
+  }
+  return ev;
+}
+
+function nodosAfectados(ciclo){
+  // Todo nodo alcanzable desde el ciclo tiene distancia indefinida (-∞),
+  // porque se puede dar vueltas al ciclo antes de continuar hacia él.
+  const ady={};
+  G.nodos.forEach(n=>ady[n.id]=[]);
+  G.aristas.forEach(a=>{ if(ady[a.u]) ady[a.u].push(a.v); });
+  const vistos=new Set(ciclo), cola=[...new Set(ciclo)];
+  while(cola.length){
+    const u=cola.shift();
+    for(const v of (ady[u]||[])) if(!vistos.has(v)){ vistos.add(v); cola.push(v); }
+  }
+  return [...vistos];
+}
+
+function sumaCiclo(ciclo){
+  let total=0; const partes=[];
+  for(let i=0;i<ciclo.length-1;i++){
+    const a=G.aristas.find(x=>x.u===ciclo[i]&&x.v===ciclo[i+1]);
+    if(!a) return null;
+    total+=a.w; partes.push(a.w<0?`(${a.w})`:String(a.w));
+  }
+  return {total, expr:partes.join(" + ")};
+}
+
+function reconstruirCiclo(pred, nodo, total){
+  let actual = nodo;
+  for(let i=0;i<total;i++){ if(actual==null) return null; actual = pred[actual]; }
+  if(actual==null) return null;
+  const inicio = actual, ciclo = [inicio];
+  actual = pred[inicio];
+  let g = 0;
+  while(actual!=null && actual!==inicio && g++ < total+2){ ciclo.push(actual); actual = pred[actual]; }
+  ciclo.push(inicio);
+  return ciclo.reverse();
+}
+
+function bellmanSimple(nodos, aristas, origen, optimizar){
+  const dist={}, pred={};
+  nodos.forEach(n=>{dist[n]=INF; pred[n]=null;});
+  dist[origen]=0;
+  let revisadas=0, vueltas=0;
+  for(let k=0;k<nodos.length-1;k++){
+    let cambio=false; vueltas++;
+    for(const a of aristas){
+      revisadas++;
+      if(dist[a.u]!==INF && dist[a.u]+a.w<dist[a.v]){ dist[a.v]=dist[a.u]+a.w; pred[a.v]=a.u; cambio=true; }
+    }
+    if(optimizar && !cambio) break;
+  }
+  let ciclo=null;
+  for(const a of aristas){
+    if(dist[a.u]!==INF && dist[a.u]+a.w<dist[a.v]){ ciclo=reconstruirCiclo(pred,a.v,nodos.length); break; }
+  }
+  return {dist,pred,ciclo,revisadas,vueltas};
+}
+
+function dijkstraJS(){
+  const ids=G.nodos.map(n=>n.id), ady={};
+  ids.forEach(n=>ady[n]=[]);
+  G.aristas.forEach(a=>ady[a.u].push([a.v,a.w]));
+  const dist={}; ids.forEach(n=>dist[n]=INF);
+  if(G.origen) dist[G.origen]=0;
+  const visto=new Set(), cola=[[0,G.origen]];
+  while(cola.length){
+    cola.sort((p,q)=>p[0]-q[0]);
+    const [d,u]=cola.shift();
+    if(u==null||visto.has(u)) continue;
+    visto.add(u);
+    for(const [v,w] of (ady[u]||[])) if(!visto.has(v)&&d+w<dist[v]){ dist[v]=d+w; cola.push([dist[v],v]); }
+  }
+  return dist;
+}
+
+/* ---------- construcción del SVG (una vez por estructura) ---------- */
+function construirSVG(){
+  const cA = $("capa-aristas"), cN = $("capa-nodos");
+  cA.innerHTML=""; cN.innerHTML="";
+  ref.aristas=[]; ref.nodos={};
+
+  G.aristas.forEach((a,i)=>{
+    const g=svgEl("g"); g.setAttribute("class","edge");
+    const line=svgEl("line");
+    const rect=svgEl("rect"); rect.setAttribute("rx","3");
+    const t=svgEl("text"); t.setAttribute("text-anchor","middle"); t.setAttribute("dy","4.5");
+    t.textContent=a.w;
+    g.appendChild(line); g.appendChild(rect); g.appendChild(t);
+    g.addEventListener("click",()=>{
+      if(modo!=="borrar") return;
+      if(porBorrar!=="e"+i){
+        porBorrar="e"+i;
+        $("ayuda").textContent=`¿Eliminar la arista ${a.u} → ${a.v}? Haz clic otra vez para confirmar.`;
+        return;
+      }
+      porBorrar=null;
+      $("ayuda").textContent="Haz clic en un nodo o en una arista para eliminarla.";
+      G.aristas.splice(i,1); reiniciar(); construirSVG();
+    });
+    cA.appendChild(g);
+    ref.aristas.push({a,g,line,t,rect});
+  });
+
+  G.nodos.forEach(n=>{
+    const g=svgEl("g"); g.setAttribute("class","node");
+    const c=svgEl("circle"); c.setAttribute("r",R);
+    const ti=svgEl("text"); ti.setAttribute("class","id"); ti.setAttribute("text-anchor","middle");
+    ti.setAttribute("dy","6"); ti.textContent=n.id;
+    const td=svgEl("text"); td.setAttribute("class","d"); td.setAttribute("text-anchor","middle");
+    g.appendChild(c); g.appendChild(ti); g.appendChild(td);
+    g.addEventListener("mousedown",ev=>iniciarArrastre(ev,n));
+    g.addEventListener("click",()=>clicNodo(n));
+    cN.appendChild(g);
+    ref.nodos[n.id]={n,g,c,ti,td};
+  });
+
+  reposicionar();
+  actualizarVista();
+  cursores();
+}
+
+function reposicionar(){
+  ref.aristas.forEach(r=>{
+    const A=nodoPor(r.a.u), B=nodoPor(r.a.v);
+    if(!A||!B) return;
+    let dx=B.x-A.x, dy=B.y-A.y;
+    const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+    const doble=G.aristas.some(o=>o.u===r.a.v&&o.v===r.a.u);
+    const off=doble?12:0, px=-dy*off, py=dx*off;
+    const x1=A.x+dx*R+px, y1=A.y+dy*R+py, x2=B.x-dx*(R+9)+px, y2=B.y-dy*(R+9)+py;
+    r.line.setAttribute("x1",x1); r.line.setAttribute("y1",y1);
+    r.line.setAttribute("x2",x2); r.line.setAttribute("y2",y2);
+    const lx=(x1+x2)/2 - dy*17, ly=(y1+y2)/2 + dx*17;
+    r.t.setAttribute("x",lx); r.t.setAttribute("y",ly);
+    const an=String(r.a.w).length*9+10;
+    r.rect.setAttribute("x",lx-an/2); r.rect.setAttribute("y",ly-10);
+    r.rect.setAttribute("width",an); r.rect.setAttribute("height",20);
+  });
+  G.nodos.forEach(n=>{
+    const r=ref.nodos[n.id]; if(!r) return;
+    r.c.setAttribute("cx",n.x); r.c.setAttribute("cy",n.y);
+    r.ti.setAttribute("x",n.x); r.ti.setAttribute("y",n.y);
+    r.td.setAttribute("x",n.x); r.td.setAttribute("y",n.y+R+20);
+  });
+}
+
+function actualizarVista(){
+  const e = eventos[idx] || null;
+  const prev = (e && idx>0) ? eventos[idx-1].dist : null;
+  const enCiclo=new Set();
+  if(e && e.ciclo) for(let i=0;i<e.ciclo.length-1;i++) enCiclo.add(e.ciclo[i]+">"+e.ciclo[i+1]);
+  const optimas=new Set();
+  if(e && e.fin) G.nodos.forEach(n=>{
+    let a=n.id,g=0;
+    while(e.pred[a]!=null && g++<40){ optimas.add(e.pred[a]+">"+a); a=e.pred[a]; }
+  });
+
+  const enRuta=new Set();
+  if(e && rutaDestacada && e.pred){
+    let a=rutaDestacada, g=0;
+    while(e.pred[a]!=null && g++<40){ enRuta.add(e.pred[a]+">"+a); a=e.pred[a]; }
+  }
+
+  ref.aristas.forEach(r=>{
+    let cls="edge", m="p0";
+    if(r.a.w<0) cls+=" neg";
+    if(enRuta.has(r.a.u+">"+r.a.v)) cls+=" destacada";
+    if(optimas.has(r.a.u+">"+r.a.v)){ cls+=" optima"; m="p2"; }
+    if(e && e.arista===r.a){ cls += e.mejora ? " mejora" : " activa"; m = e.mejora?"p2":"p1"; }
+    if(enCiclo.has(r.a.u+">"+r.a.v)){ cls+=" ciclo"; m="p3"; }
+    r.g.setAttribute("class",cls);
+    r.line.setAttribute("marker-end",`url(#${m})`);
+  });
+
+  G.nodos.forEach(n=>{
+    const r=ref.nodos[n.id]; if(!r) return;
+    let cls="node";
+    if(n.id===G.origen) cls+=" origen";
+    if(e && e.arista && (e.arista.u===n.id||e.arista.v===n.id)) cls+=" activa";
+    if(e && ((e.ciclo && e.ciclo.includes(n.id)) || (e.afectados && e.afectados.indexOf(n.id)>=0))) cls+=" ciclo";
+    const cambio = e && prev && prev[n.id]!==e.dist[n.id];
+    r.g.setAttribute("class",cls);
+    r.td.textContent = e ? valorMostrado(e, n.id) : "";
+    if(cambio){ r.g.classList.remove("pulso"); void r.g.getBBox(); r.g.classList.add("pulso"); }
+  });
+}
+
+function cursores(){
+  Object.values(ref.nodos).forEach(r=>r.g.style.cursor = modo==="mover" ? "grab" : "pointer");
+  ref.aristas.forEach(r=>r.g.style.cursor = modo==="borrar" ? "pointer" : "default");
+}
+
+/* ---------- edición ---------- */
+function cargarEjemplo(clave){
+  const e=EJEMPLOS[clave];
+  G={nodos:e.nodos.map(n=>({...n})), aristas:e.aristas.map(a=>({u:a[0],v:a[1],w:a[2]})), origen:e.origen};
+  rutaDestacada="";
+  $("desc-ejemplo").textContent = e.desc || "";
+  reiniciar(); construirSVG(); llenarOrigen();
+}
+
+function setModo(m){
+  modo=m; pendiente=null;
+  ["mover","nodo","arista","borrar"].forEach(k=>$("m-"+k).setAttribute("aria-pressed",String(k===m)));
+  $("ayuda").textContent = {
+    mover:"Arrastra los nodos para acomodarlos.",
+    nodo:"Haz clic en un espacio vacío para crear un nodo.",
+    arista:"Haz clic en el nodo de origen y luego en el de destino.",
+    borrar:"Haz clic en un nodo o en una arista para eliminarla."
+  }[m];
+  cursores();
+}
+
+let porBorrar=null;
+function clicNodo(n){
+  if(modo==="borrar"){
+    if(porBorrar!==n.id){
+      porBorrar=n.id;
+      $("ayuda").textContent=`¿Eliminar el nodo ${n.id} y sus aristas? Haz clic otra vez para confirmar.`;
+      return;
+    }
+    porBorrar=null;
+    $("ayuda").textContent="Haz clic en un nodo o en una arista para eliminarla.";
+    G.nodos=G.nodos.filter(x=>x.id!==n.id);
+    G.aristas=G.aristas.filter(a=>a.u!==n.id&&a.v!==n.id);
+    if(G.origen===n.id) G.origen = G.nodos.length?G.nodos[0].id:null;
+    reiniciar(); construirSVG(); llenarOrigen();
+  }else if(modo==="arista"){
+    if(!pendiente){ pendiente=n.id; $("ayuda").textContent=`Origen ${n.id} seleccionado. Ahora elige el destino.`; }
+    else abrirEditorPeso(pendiente, n.id);
+  }
+}
+
+$("lienzo").addEventListener("click",ev=>{
+  if(modo!=="nodo" || ev.target.closest("g.node")) return;
+  const p=puntoSVG(ev);
+  const usados=new Set(G.nodos.map(n=>n.id));
+  let id=null;
+  for(let i=0;i<26&&!id;i++){ const c=String.fromCharCode(65+i); if(!usados.has(c)) id=c; }
+  if(!id) id="N"+G.nodos.length;
+  G.nodos.push({id,x:p.x,y:p.y});
+  if(!G.origen) G.origen=id;
+  reiniciar(); construirSVG(); llenarOrigen();
+});
+
+let aristaPend=null;
+function svgAPx(x,y){
+  const svg=$("lienzo"), r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
+  const esc=Math.min(r.width/vb.width, r.height/vb.height);
+  return {x:x*esc+(r.width-vb.width*esc)/2, y:y*esc+(r.height-vb.height*esc)/2};
+}
+function abrirEditorPeso(u,v){
+  aristaPend={u,v};
+  const A=nodoPor(u), B=nodoPor(v);
+  const p=svgAPx((A.x+B.x)/2, (A.y+B.y)/2);
+  const e=$("editor-peso");
+  e.hidden=false;
+  e.style.left=Math.max(8, Math.min(p.x-106, $("lienzo").getBoundingClientRect().width-228))+"px";
+  e.style.top=Math.max(8, p.y-56)+"px";
+  $("ep-etq").textContent=`${u} → ${v}`;
+  $("ep-val").value="1";
+  $("ep-val").focus();
+  $("ep-val").select();
+}
+function confirmarPeso(){
+  const w=Number($("ep-val").value);
+  if(!aristaPend || $("ep-val").value.trim()==="" || isNaN(w)){ cancelarPeso(); return; }
+  G.aristas.push({u:aristaPend.u, v:aristaPend.v, w});
+  cancelarPeso();
+  reiniciar(); construirSVG();
+}
+function cancelarPeso(){
+  aristaPend=null; pendiente=null;
+  $("editor-peso").hidden=true;
+  $("ayuda").textContent="Haz clic en el nodo de origen y luego en el de destino.";
+}
+document.addEventListener("keydown",ev=>{
+  if($("editor-peso").hidden) return;
+  if(ev.key==="Enter"){ ev.preventDefault(); confirmarPeso(); }
+  if(ev.key==="Escape"){ ev.preventDefault(); cancelarPeso(); }
+});
+
+function modoPresentacion(activo){
+  document.body.classList.toggle("presentacion", activo);
+  if(activo){ setModo("mover"); cancelarPeso(); }
+}
+
+function volverAlInicio(){ pararPlay(); idx=0; render(); }
+
+function puntoSVG(ev){
+  const svg=$("lienzo"), r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
+  const esc=Math.min(r.width/vb.width, r.height/vb.height);
+  const mx=(r.width-vb.width*esc)/2, my=(r.height-vb.height*esc)/2;
+  return {x:(ev.clientX-r.left-mx)/esc, y:(ev.clientY-r.top-my)/esc};
+}
+
+let arrastrando=null;
+function iniciarArrastre(ev,n){ if(modo!=="mover") return; ev.preventDefault(); arrastrando=n; }
+window.addEventListener("mousemove",ev=>{
+  if(!arrastrando) return;
+  const p=puntoSVG(ev);
+  arrastrando.x=Math.max(34,Math.min(886,p.x));
+  arrastrando.y=Math.max(34,Math.min(400,p.y));
+  reposicionar();
+});
+window.addEventListener("mouseup",()=>{arrastrando=null;});
+
+function llenarOrigen(){
+  $("origen").innerHTML = G.nodos.map(n=>`<option ${n.id===G.origen?"selected":""}>${n.id}</option>`).join("");
+  $("ruta-dest").innerHTML = `<option value="">ninguna</option>` +
+    G.nodos.map(n=>`<option ${n.id===rutaDestacada?"selected":""}>${n.id}</option>`).join("");
+}
+function destacarRuta(v){ rutaDestacada = v; actualizarVista(); costoRuta(); }
+
+/* ---------- grafo: aleatorio, orden, importar y exportar ---------- */
+function ordenarCircular(){
+  const V=G.nodos.length; if(!V) return;
+  const cx=460, cy=222, r=Math.min(168, 40+V*20);
+  G.nodos.forEach((n,i)=>{
+    const ang=-Math.PI/2 + i*2*Math.PI/V;
+    n.x=cx+r*Math.cos(ang); n.y=cy+r*Math.sin(ang)*0.86;
+  });
+  reposicionar();
+}
+
+function grafoAleatorio(){
+  for(let intento=0;intento<30;intento++){
+    const V=5+Math.floor(Math.random()*3);
+    const ids=Array.from({length:V},(_,i)=>String.fromCharCode(65+i));
+    const nodos=ids.map(id=>({id,x:0,y:0}));
+    const aristas=[];
+    for(let i=0;i<V;i++) for(let j=0;j<V;j++){
+      if(i===j) continue;
+      if(Math.random()<0.32){
+        const adelante=j>i;
+        const w = (adelante && Math.random()<0.28) ? -(1+Math.floor(Math.random()*4))
+                                                   : 3+Math.floor(Math.random()*7);
+        aristas.push({u:ids[i],v:ids[j],w});
+      }
+    }
+    if(aristas.length<V) continue;
+    const prueba=bellmanSimple(ids,aristas,ids[0],false);
+    if(prueba.ciclo) continue;
+    const alcanzables=ids.filter(n=>prueba.dist[n]!==INF).length;
+    if(alcanzables<V) continue;
+    G={nodos,aristas,origen:ids[0]};
+    rutaDestacada="";
+    reiniciar(); ordenarCircular(); construirSVG(); llenarOrigen();
+    $("ejemplo").value="vacio";
+    $("desc-ejemplo").textContent="Grafo generado al azar, verificado sin ciclos negativos y con todos los nodos alcanzables.";
+    avisoSimulador("Grafo aleatorio generado sin ciclos negativos. Pulsa «Ejecutar».");
+    return;
+  }
+  avisoSimulador("No se pudo generar un grafo válido. Inténtalo otra vez.", true);
+}
+
+function descargar(nombre, contenido, tipo){
+  const b=new Blob([contenido],{type:tipo});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download=nombre;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+function exportarGrafo(){
+  avisoBreve("Grafo exportado como grafo.json");
+  descargar("grafo.json", JSON.stringify({
+    origen:G.origen,
+    nodos:G.nodos.map(n=>({id:n.id,x:Math.round(n.x),y:Math.round(n.y)})),
+    aristas:G.aristas.map(a=>({u:a.u,v:a.v,w:a.w}))
+  }, null, 2), "application/json");
+}
+
+function importarGrafo(ev){
+  const f=ev.target.files && ev.target.files[0];
+  if(!f) return;
+  const lector=new FileReader();
+  lector.onload=()=>{
+    try{
+      const d=JSON.parse(lector.result);
+      if(!Array.isArray(d.nodos)||!Array.isArray(d.aristas)) throw new Error("estructura inválida");
+      // Un identificador como "__proto__" no se puede usar como clave de un objeto plano.
+      const prohibidos=["__proto__","constructor","prototype"];
+      if(d.nodos.some(n=>prohibidos.indexOf(String(n.id))>=0))
+        throw new Error("identificador de nodo no permitido");
+      G={ nodos:d.nodos.map((n,i)=>({id:String(n.id), x:Number(n.x)||120+i*90, y:Number(n.y)||226})),
+          aristas:d.aristas.map(a=>({u:String(a.u), v:String(a.v), w:Number(a.w)})),
+          origen: d.origen || (d.nodos[0] && String(d.nodos[0].id)) };
+      rutaDestacada="";
+      reiniciar(); construirSVG(); llenarOrigen();
+      avisoSimulador(`Grafo cargado: ${G.nodos.length} nodos y ${G.aristas.length} aristas.`);
+    }catch(err){
+      avisoSimulador("El archivo no tiene el formato esperado.", true);
+    }
+    ev.target.value="";
+  };
+  lector.readAsText(f);
+}
+
+function exportarResultados(){
+  if(!eventos.length){ avisoSimulador("Primero ejecuta el algoritmo.", true); return; }
+  const e=eventos[idx];
+  const filas=[["nodo","distancia","predecesor","ruta"]].concat(
+    G.nodos.map(n=>[n.id, fmtN(e.dist[n.id]), e.pred[n.id]||"", ruta(e.pred,n.id)]));
+  descargar("resultados.csv", filas.map(f=>f.map(c=>`"${c}"`).join(",")).join("\n"), "text/csv");
+  avisoBreve("Resultados exportados como resultados.csv");
+}
+
+function avisoSimulador(texto, malo){
+  const d=$("detalle");
+  d.className = "detalle" + (malo?" falla":"");
+  $("det-cab").textContent = malo ? "Atención" : "Estado";
+  $("det-narra").textContent = texto;
+  $("det-datos").innerHTML = "";
+}
+function cambiarOrigen(v){ G.origen=v; reiniciar(); actualizarVista(); }
+
+/* ---------- reproducción ---------- */
+function reiniciar(){
+  eventos=[]; idx=0; pararPlay();
+  ["b-play","b-prev","b-next","b-fin","b-cero"].forEach(b=>$(b).disabled=true);
+  $("detalle").className="detalle";
+  $("det-cab").textContent="Detalle del paso";
+  $("det-narra").textContent="Pulsa «Ejecutar» para calcular los pasos del algoritmo.";
+  $("det-datos").innerHTML="";
+  $("c-iter").textContent="—"; $("c-paso").textContent="0 / 0"; $("c-rel").textContent="0";
+  $("tabla-dist").innerHTML="";
+  pasadas=[];
+  $("tabla-pasadas").innerHTML='<tbody><tr><td style="color:var(--gris)">Ejecuta el algoritmo para ver el resumen.</td></tr></tbody>';
+  $("linea-viva").textContent="—";
+  $("barra-sim").style.width="0%";
+  $("pct-sim").textContent="0 %"; $("pct-sim").className="pct";
+  $("b-run").textContent="Ejecutar";
+  $("costo-ruta").hidden=true;
+  pintarCodigo(null,false);
+}
+
+function ejecutar(){
+  if(!G.nodos.length||!G.origen){ avisoSimulador("Primero crea un grafo: usa «Aleatorio», carga un ejemplo o dibuja nodos con el modo Nodo.", true); return; }
+  const pasosPrevistos = 2 + (G.nodos.length-1)*(1+G.aristas.length) + G.aristas.length;
+  if(pasosPrevistos > 20000){
+    avisoSimulador(`Este grafo generaría unos ${pasosPrevistos.toLocaleString("es")} pasos de animación. `+
+      `La vista paso a paso está pensada para grafos pequeños; usa la pestaña «Prueba de escala» para grafos grandes.`, true);
+    return;
+  }
+  pararPlay();
+  eventos=calcularEventos(); idx=0;
+  ["b-play","b-prev","b-next","b-fin","b-cero"].forEach(b=>$(b).disabled=false);
+  render();
+}
+function mover(p){ idx=Math.max(0,Math.min(eventos.length-1,idx+p)); render(); if(idx===eventos.length-1) pararPlay(); }
+function alFinal(){ idx=eventos.length-1; render(); pararPlay(); }
+function alternarPlay(){
+  if(timer) pararPlay();
+  else{
+    if(idx>=eventos.length-1) idx=0;
+    $("b-play").textContent="Pausar";
+    bloquearEdicion(true);
+    timer=setInterval(()=>mover(1), Number($("vel").value));
+  }
+}
+function pararPlay(){
+  if(timer) clearInterval(timer);
+  timer=null;
+  $("b-play").textContent="Reproducir";
+  bloquearEdicion(false);
+}
+function bloquearEdicion(b){
+  ["m-mover","m-nodo","m-arista","m-borrar","g-azar","g-imp","ejemplo","origen"]
+    .forEach(k=>{ const el=$(k); if(el) el.disabled=b; });
+}
+$("vel").addEventListener("input",()=>{ if(timer){ pararPlay(); alternarPlay(); } });
+
+function render(){
+  const e=eventos[idx];
+  actualizarVista();
+  const d=$("detalle");
+  d.className = "detalle" + (e.error?" falla":(e.fin?" exito":""));
+  $("det-cab").textContent = e.error ? "Ciclo negativo detectado"
+    : (e.fin ? "Algoritmo terminado" : (e.verificando ? "Pasada de verificación" : "Detalle del paso"));
+  $("det-narra").textContent = e.narra;
+  $("det-datos").innerHTML = (e.datos||[]).map(([k,v,tono])=>
+    `<div class="fila"><dt>${k}</dt><dd class="${tono||""}">${v}</dd></div>`).join("") +
+    (e.estadisticas ? tarjetasEstadisticas(e.estadisticas) : "");
+  $("c-iter").textContent = e.iter==="fin" ? "terminada" : (e.iter==="V" ? "verificación" : e.iter);
+  $("c-paso").textContent = `${idx+1} / ${eventos.length}`;
+  $("c-rel").textContent = e.rel;
+  const pct = Math.round(100*idx/Math.max(eventos.length-1,1));
+  $("barra-sim").style.width = pct+"%";
+  const listo = idx===eventos.length-1;
+  $("pct-sim").textContent = listo ? "Completado" : pct+" %";
+  $("pct-sim").className = "pct" + (listo ? " listo" : "");
+  $("b-run").textContent = listo ? "Ejecutar de nuevo" : "Ejecutar";
+  costoRuta();
+  pintarTabla(e);
+  pintarPasadas(e);
+  pintarCodigo(e.linea, e.mejora);
+  lineaViva(e);
+}
+
+function tarjetasEstadisticas(x){
+  const items = [
+    ["Nodos", x.nodos], ["Aristas", x.aristas], ["Pasadas", x.pasadas],
+    ["Relajaciones aplicadas", x.relajaciones], ["Aristas revisadas", x.revisiones],
+    ["Tiempo de cálculo", x.ms + " ms"]
+  ];
+  return `<div class="stats">` + items.map(([k,v])=>
+    `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("") + `</div>`;
+}
+
+function costoRuta(){
+  const c = $("costo-ruta"), e = eventos[idx];
+  if(!rutaDestacada || !e || e.dist[rutaDestacada]===undefined || e.dist[rutaDestacada]===INF){
+    c.hidden = true; return;
+  }
+  c.hidden = false;
+  c.innerHTML = `Costo hasta ${rutaDestacada}: <b>${valorMostrado(e, rutaDestacada)}</b>`;
+}
+
+function pintarPasadas(e){
+  const ids = G.nodos.map(n=>n.id);
+  const cab = `<thead><tr><th>Pasada</th>${ids.map(n=>`<th>${n}</th>`).join("")}<th>Cambios</th></tr></thead>`;
+  const cuerpo = pasadas.map(p=>{
+    const activa = (typeof e.iter==="number" && p.iter===e.iter) ||
+                   (e.iter!=="fin" && e.iter!=="V" ? false : p.iter===pasadas.length-1);
+    const nota = p.cambios===null ? "—"
+      : (p.cambios===0 ? "ninguno: ya convergió" : `${p.cambios} distancia(s)`);
+    return `<tr class="${activa?"cambio":""}"><td>${p.et}</td>`+
+           ids.map(n=>`<td class="n">${fmtN(p.dist[n])}</td>`).join("")+
+           `<td style="color:var(--tenue);font-size:13px">${nota}</td></tr>`;
+  }).join("");
+  $("tabla-pasadas").innerHTML = cab + "<tbody>" + cuerpo + "</tbody>";
+}
+
+function pintarTabla(e){
+  const prev = idx>0 ? eventos[idx-1].dist : null;
+  $("tabla-dist").innerHTML = G.nodos.map(n=>{
+    const cambio = prev && prev[n.id]!==e.dist[n.id];
+    const afectado = e.afectados && e.afectados.indexOf(n.id)>=0;
+    return `<tr class="${cambio?"cambio":""}"><td>${n.id}</td>`+
+           `<td class="n" style="${afectado?"color:var(--rojo)":""}">${valorMostrado(e,n.id)}</td>`+
+           `<td>${e.pred[n.id]||"—"}</td>`+
+           `<td class="r">${afectado?"sin camino mínimo":ruta(e.pred,n.id)}</td></tr>`;
+  }).join("");
+}
+
+function ruta(pred,destino){
+  const c=[]; let a=destino,g=0;
+  while(a!=null&&g++<40){ c.push(a); if(a===G.origen) return c.reverse().join(" → "); a=pred[a]; }
+  return "—";
+}
+
+/* ---------- código y línea viva ---------- */
+const PSEUDO=[
+ ["ALGORITMO Bellman-Ford(G, origen)",""],
+ ["   PARA CADA nodo v EN G HACER","init"],
+ ["      distancia[v] ← INFINITO","init"],
+ ["      predecesor[v] ← NULO","init"],
+ ["   distancia[origen] ← 0","init"],
+ ["",""],
+ ["   REPETIR |V| − 1 VECES","iter"],
+ ["      PARA CADA arista (u, v, peso) EN G HACER","prueba"],
+ ["         SI distancia[u] + peso < distancia[v] ENTONCES","prueba"],
+ ["            distancia[v] ← distancia[u] + peso","mejora"],
+ ["            predecesor[v] ← u","mejora"],
+ ["",""],
+ ["   PARA CADA arista (u, v, peso) EN G HACER","verifica"],
+ ["      SI distancia[u] + peso < distancia[v] ENTONCES","verifica"],
+ ["         ERROR 'Ciclo de peso negativo'","error"],
+ ["",""],
+ ["   RETORNAR distancia, predecesor","retorna"],
+ ["FIN ALGORITMO",""]
+];
+const PYTHON=[
+ ["def bellman_ford(nodos, aristas, origen):",""],
+ ["    distancia = {n: INF for n in nodos}","init"],
+ ["    predecesor = {n: None for n in nodos}","init"],
+ ["    distancia[origen] = 0","init"],
+ ["",""],
+ ["    for _ in range(len(nodos) - 1):","iter"],
+ ["        for u, v, peso in aristas:","prueba"],
+ ["            if distancia[u] + peso < distancia[v]:","prueba"],
+ ["                distancia[v] = distancia[u] + peso","mejora"],
+ ["                predecesor[v] = u","mejora"],
+ ["",""],
+ ["    for u, v, peso in aristas:","verifica"],
+ ["        if distancia[u] + peso < distancia[v]:","verifica"],
+ ["            raise ValueError('Ciclo negativo')","error"],
+ ["",""],
+ ["    return distancia, predecesor","retorna"]
+];
+
+function etiquetaVelocidad(v){
+  v = Number(v);
+  const nombre = v <= 420 ? "Rápido" : (v <= 1100 ? "Normal" : "Lento");
+  $("v-vel").textContent = `${v} ms · ${nombre}`;
+}
+
+function avisoBreve(texto){
+  const a = $("ayuda"), previo = a.textContent;
+  a.textContent = texto;
+  setTimeout(()=>{ if(a.textContent===texto) a.textContent = previo; }, 3200);
+}
+
+function verCodigo(cual){
+  vistaCodigo=cual;
+  $("k-pseudo").setAttribute("aria-selected",String(cual==="pseudo"));
+  $("k-python").setAttribute("aria-selected",String(cual==="python"));
+  const e=eventos[idx];
+  pintarCodigo(e?e.linea:null, e?e.mejora:false);
+}
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function pintarCodigo(marca, ok){
+  const f = vistaCodigo==="pseudo" ? PSEUDO : PYTHON;
+  $("panel-codigo").innerHTML = f.map(([txt,tag])=>{
+    const on = tag && tag===marca;
+    return `<span class="ln${on?" on":""}${on&&ok?" ok":""}">${esc(txt)||"&nbsp;"}</span>`;
+  }).join("");
+}
+
+function lineaViva(e){
+  const c = $("linea-viva");
+  const V = G.nodos.length;
+  if(e.fase==="init"){
+    c.innerHTML = `distancia[<span class="val">${G.origen}</span>] ← <span class="val">0</span> · el resto ← ∞`;
+  }else if(e.fase==="iter"){
+    c.innerHTML = `REPETIR <span class="val">${V-1}</span> VECES → iteración <span class="val">${e.iter}</span>`;
+  }else if(e.arista){
+    const a=e.arista;
+    if(e.du===INF){
+      c.innerHTML = `SI <span class="val">∞</span> + ${a.w} &lt; ${fmtN(e.dv)} → <span class="res no">falso</span> (${a.u} inalcanzable)`;
+    }else{
+      const r = e.mejora ? `<span class="res si">verdadero</span>` : `<span class="res no">falso</span>`;
+      c.innerHTML = `SI <span class="val">${fmtN(e.du)}</span> + <span class="val">${a.w}</span> = `+
+                    `<span class="val">${fmtN(e.suma)}</span> &lt; <span class="val">${fmtN(e.dv)}</span> → ${r}`;
+    }
+  }else if(e.error){
+    c.innerHTML = `<span class="res no">ERROR</span> ciclo de peso negativo: ${e.ciclo?e.ciclo.join(" → "):""}`;
+  }else{
+    c.innerHTML = `RETORNAR distancia, predecesor · <span class="res si">${e.rel} actualizaciones</span>`;
+  }
+}
+
+/* ---------- comparación ---------- */
+function comparar(){
+  if(!G.nodos.length){ $("msg-cmp").className="aviso mal"; $("msg-cmp").textContent="Primero carga un grafo en el simulador."; return; }
+  const ids=G.nodos.map(n=>n.id);
+  const bf=bellmanSimple(ids,G.aristas,G.origen,false);
+  const m=$("msg-cmp");
+  if(bf.ciclo){
+    $("veredicto-cmp").innerHTML =
+      `<div class="veredicto"><b>Ambos algoritmos</b><span class="sello mal">✗ No aplicable: ciclo negativo</span></div>`;
+    $("tabla-cmp").innerHTML=`<tr><td colspan="5" style="color:var(--rojo)">El grafo tiene un ciclo negativo: no hay distancias que comparar.</td></tr>`;
+    m.className="aviso mal";
+    m.textContent=`Ciclo negativo: ${bf.ciclo.join(" → ")}. Ninguno de los dos algoritmos puede dar una respuesta válida.`;
+    return;
+  }
+  const dj=dijkstraJS(); let difs=0;
+  $("tabla-cmp").innerHTML=ids.map(n=>{
+    const igual=bf.dist[n]===dj[n];
+    if(!igual) difs++;
+    const motivo = igual ? "" : explicarDiferencia(n, bf.pred, dj[n]);
+    return `<tr class="${igual?"":"mal"}"><td>${n}</td><td class="n">${fmtN(bf.dist[n])}</td>`+
+           `<td class="n">${fmtN(dj[n])}</td><td>${igual?"sí":"NO"}</td><td class="motivo">${motivo}</td></tr>`;
+  }).join("");
+  $("veredicto-cmp").innerHTML =
+    `<div class="veredicto"><b>Bellman-Ford</b><span class="sello ok">✓ Resultado correcto</span></div>` +
+    `<div class="veredicto"><b>Dijkstra</b><span class="sello ${difs?"mal":"ok"}">` +
+    (difs ? `✗ Se equivoca en ${difs} nodo(s)` : "✓ Coincide en este grafo") + `</span></div>`;
+  if(difs){
+    m.className="aviso mal";
+    m.textContent=`Dijkstra se equivoca en ${difs} nodo(s): fijó su distancia antes de descubrir una arista negativa y ya no volvió a revisarla.`;
+  }else{
+    m.className="aviso bien";
+    m.textContent="Ambos coinciden. Este grafo no obliga a Dijkstra a reabrir un nodo ya fijado, así que su atajo sigue siendo válido aquí.";
+  }
+}
+
+function explicarDiferencia(nodo, pred, valorDijkstra){
+  let a=nodo, g=0, culpable=null;
+  while(pred[a]!=null && g++<40){
+    const ar=G.aristas.find(x=>x.u===pred[a] && x.v===a);
+    if(ar && ar.w<0){ culpable=ar; break; }
+    a=pred[a];
+  }
+  if(culpable)
+    return `Dijkstra cerró ${nodo} en ${fmtN(valorDijkstra)} antes de relajar `+
+           `${culpable.u} → ${culpable.v} (${culpable.w}), y ya no reabre nodos visitados.`;
+  return `Dijkstra cerró ${nodo} antes de procesar una arista negativa de su ruta óptima.`;
+}
+
+function cargarTrampaYComparar(){
+  cargarEjemplo("red");
+  $("ejemplo").value="red";
+  comparar();
+}
+
+/* ---------- arbitraje ---------- */
+const TASAS_BASE=[["USD","EUR",0.92],["EUR","GBP",0.85],["GBP","USD",1.40],["USD","JPY",150],["GBP","JPY",190]];
+let tasas=TASAS_BASE.map(t=>[...t]);
+function pintarTasas(){
+  $("tabla-tasas").innerHTML=tasas.map((t,i)=>
+    `<tr><td>${t[0]}</td><td>${t[1]}</td><td class="n">${t[2]}</td>`+
+    `<td><button class="bt" style="padding:3px 11px;font-size:13px" onclick="quitarTasa(${i})">Quitar</button></td></tr>`).join("");
+}
+function quitarTasa(i){ tasas.splice(i,1); pintarTasas(); }
+function reiniciarTasas(){ tasas=TASAS_BASE.map(t=>[...t]); pintarTasas(); }
+function agregarTasa(){
+  const de=$("a-de").value.trim().toUpperCase(), a=$("a-a").value.trim().toUpperCase(), v=Number($("a-tasa").value);
+  if(!de||!a||!(v>0)){ const m=$("msg-arb"); m.className="aviso mal"; m.textContent="Completa las dos monedas y una tasa mayor que cero."; return; }
+  tasas.push([de,a,v]); pintarTasas();
+  $("a-de").value=""; $("a-a").value=""; $("a-tasa").value="";
+}
+function buscarArbitraje(){
+  const monedas=[...new Set(tasas.flatMap(t=>[t[0],t[1]]))];
+  const aristas=tasas.map(t=>({u:t[0],v:t[1],w:-Math.log(t[2])}));
+  const r=bellmanSimple(monedas,aristas,monedas[0],false);
+  const m=$("msg-arb"), d=$("detalle-arb");
+  if(!r.ciclo){
+    m.className="aviso"; m.textContent="No hay ciclo de peso negativo: con estas tasas no existe arbitraje.";
+    d.innerHTML=""; return;
+  }
+  let factor=1, ok=true; const pasos=[];
+  for(let i=0;i<r.ciclo.length-1;i++){
+    const t=tasas.find(x=>x[0]===r.ciclo[i]&&x[1]===r.ciclo[i+1]);
+    if(!t){ ok=false; break; }
+    factor*=t[2]; pasos.push(`${t[0]} → ${t[1]}  ×  ${t[2]}`);
+  }
+  m.className="aviso bien";
+  m.textContent=`Arbitraje detectado: ${r.ciclo.join(" → ")}`;
+  d.innerHTML = ok
+    ? `<table><tbody>${pasos.map(p=>`<tr><td class="r">${p}</td></tr>`).join("")}</tbody></table>`+
+      `<p class="nota" style="margin-bottom:2px">Factor del ciclo</p><div class="grande">${factor.toFixed(4)}</div>`+
+      `<p class="nota">Ganancia de ${((factor-1)*100).toFixed(2)}% por vuelta. Con 1000 ${r.ciclo[0]} se obtendrían ${(1000*factor).toFixed(2)} ${r.ciclo[0]}.</p>`
+    : `<p class="nota">El ciclo detectado usa aristas que ya no están en la tabla.</p>`;
+}
+
+/* ---------- escala ---------- */
+function probarEscala(){
+  const V=Number($("n-nodos").value), grado=Number($("n-grado").value);
+  const opt=$("optimiza").checked;
+  const nodos=Array.from({length:V},(_,i)=>"n"+i);
+  const aristas=[];
+  for(let i=0;i<V;i++) for(let g=0;g<grado;g++){
+    const j=i+1+Math.floor(Math.random()*Math.min(grado*3, V-i-1||1));
+    if(j<V) aristas.push({u:"n"+i,v:"n"+j,w:Math.floor(Math.random()*21)-6});
+  }
+
+  const dist={}, pred={};
+  nodos.forEach(n=>{dist[n]=INF; pred[n]=null;});
+  dist["n0"]=0;
+
+  let k=0, revisadas=0, vueltas=0, ms=0, corta=false;
+  $("b-esc").disabled=true;
+  const m=$("msg-esc"); m.className="aviso";
+  m.textContent=`Resolviendo un grafo de ${V} nodos y ${aristas.length} aristas…`;
+  $("formula-esc").innerHTML=`Peor caso: (V − 1) × E = <b>${(V-1).toLocaleString("es")}</b> × <b>${aristas.length.toLocaleString("es")}</b> = <b>${((V-1)*aristas.length).toLocaleString("es")}</b> relajaciones.`;
+
+  function bloque(){
+    const t0=performance.now();
+    while(k<V-1 && performance.now()-t0 < 35){
+      let cambio=false;
+      for(const a of aristas){
+        revisadas++;
+        if(dist[a.u]!==INF && dist[a.u]+a.w<dist[a.v]){ dist[a.v]=dist[a.u]+a.w; pred[a.v]=a.u; cambio=true; }
+      }
+      vueltas++; k++;
+      if(opt && !cambio){ corta=true; break; }
+    }
+    ms += performance.now()-t0;
+    $("barra-esc").style.width = Math.round(100*k/Math.max(V-1,1))+"%";
+    if(k<V-1 && !corta){ setTimeout(bloque,0); return; }
+    terminar();
+  }
+
+  function terminar(){
+    const cuerpo=$("tabla-esc");
+    if(cuerpo.querySelector("td[colspan]")) cuerpo.innerHTML="";
+    cuerpo.insertAdjacentHTML("afterbegin",
+      `<tr><td class="n">${V}</td><td class="n">${aristas.length}</td>`+
+      `<td class="n">${revisadas.toLocaleString("es")}</td>`+
+      `<td class="n">${vueltas}${corta?" (salida anticipada)":""}</td><td class="n">${ms.toFixed(1)} ms</td></tr>`);
+    m.className="aviso bien";
+    m.textContent=`Grafo de ${V} nodos y ${aristas.length} aristas resuelto en ${ms.toFixed(1)} ms de cálculo, tras ${vueltas} pasada(s) y ${revisadas.toLocaleString("es")} relajaciones revisadas.`;
+    $("formula-esc").innerHTML=`Peor caso: (V − 1) × E = <b>${((V-1)*aristas.length).toLocaleString("es")}</b> relajaciones · Reales: <b>${revisadas.toLocaleString("es")}</b>`;
+    $("b-esc").disabled=false;
+    $("barra-esc").style.width="100%";
+  }
+
+  setTimeout(bloque,0);
+}
+
+/* ---------- navegación ---------- */
+function verSeccion(id){
+  ["sim","cmp","arb","esc","teo"].forEach(k=>{
+    $("sec-"+k).hidden = (k!==id);
+    $("t-"+k).setAttribute("aria-selected",String(k===id));
+  });
+}
+
+cargarEjemplo("red");
+pintarTasas();
+ejecutar();          // deja la simulación calculada y detenida en el paso 0
+</script>
+</body>
+</html>
