@@ -526,12 +526,12 @@ let rutaDestacada = "";
 const ref = {aristas:[], nodos:{}};
 
 const EJEMPLOS = {
-  red:{ origen:"A",
-    desc:"Caso construido para la exposición: los pesos están elegidos a propósito para que Dijkstra devuelva 5 hacia D cuando la respuesta correcta es 1.",
-    nodos:[{id:"A",x:110,y:228},{id:"B",x:348,y:104},{id:"C",x:348,y:352},
-           {id:"E",x:596,y:104},{id:"D",x:812,y:228}],
-    aristas:[["A","B",4],["A","C",2],["B","C",3],["B","D",2],["B","E",3],
-             ["C","B",1],["C","D",4],["C","E",5],["E","D",-5]] },
+  red:{ origen:"s",
+    desc:"Grafo de la figura 24.4 de Cormen, Leiserson, Rivest y Stein, «Introduction to Algorithms». Es el ejemplo canónico de Bellman-Ford: tres aristas de peso negativo y un caso en el que Dijkstra falla en dos vértices.",
+    nodos:[{id:"s",x:120,y:230},{id:"t",x:390,y:96},{id:"x",x:730,y:96},
+           {id:"y",x:390,y:366},{id:"z",x:730,y:366}],
+    aristas:[["t","x",5],["t","y",8],["t","z",-4],["x","t",-2],["y","x",-3],
+             ["y","z",9],["z","x",7],["z","s",2],["s","t",6],["s","y",7]] },
   buses:{ origen:"GYE",
     desc:"Tarifas oficiales del transporte interprovincial en dólares (Resolución 020-DIR-2026-ANT de la ANT, vigentes desde el 1 de agosto de 2026). Todos los pesos son positivos, como ocurre siempre con precios de pasajes. Fíjate en el resultado hacia Quito.",
     nodos:[{id:"ESM",x:300,y:70},{id:"TUL",x:700,y:60},{id:"UIO",x:620,y:158},
@@ -556,10 +556,12 @@ const EJEMPLOS = {
              ["PPT","CUY",-0.62],["CUY","PPT",8.28],["CUY","BAE",1.77],["BAE","CUY",6.68],
              ["BAE","TEN",12.7],["TEN","BAE",26.91],["BAE","LAG",20.0],["LAG","BAE",36.36],
              ["TEN","LAG",31.6],["LAG","TEN",33.75]] },
-  ciclo:{ origen:"X",
-    desc:"El circuito X → Y → Z → X suma −1. Al ejecutarlo, el algoritmo lo detecta y marca en rojo los nodos cuya distancia queda indefinida.",
-    nodos:[{id:"X",x:210,y:136},{id:"Y",x:660,y:136},{id:"Z",x:435,y:360}],
-    aristas:[["X","Y",1],["Y","Z",-3],["Z","X",1]] },
+  ciclo:{ origen:"s",
+    desc:"Misma figura 24.4 con el peso de la arista (z, x) cambiado de 7 a 4, tal como plantea el ejercicio 24.1-1 del libro. Ese cambio crea el ciclo negativo t → z → x → t, de peso −2.",
+    nodos:[{id:"s",x:120,y:230},{id:"t",x:390,y:96},{id:"x",x:730,y:96},
+           {id:"y",x:390,y:366},{id:"z",x:730,y:366}],
+    aristas:[["t","x",5],["t","y",8],["t","z",-4],["x","t",-2],["y","x",-3],
+             ["y","z",9],["z","x",4],["z","s",2],["s","t",6],["s","y",7]] },
   vacio:{origen:null, desc:"Lienzo vacío: usa el modo Nodo para crear vértices y el modo Arista para conectarlos.", nodos:[], aristas:[]}
 };
 
