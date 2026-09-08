@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+const between=(a,b)=>html.slice(html.indexOf('function '+a+'('),html.indexOf('function '+b+'('));
+const ctx=vm.createContext({INF:Infinity});
+vm.runInContext(between('reconstruirCiclo','dijkstraJS')+between('validarGrafo','importarGrafo'),ctx);
+const edge=(u,v,w)=>({u,v,w});
+let result=ctx.bellmanSimple(['A','B','C'],[edge('A','B',2),edge('B','C',-3),edge('A','C',4)],'A',true);
+assert.equal(result.dist.C,-1);assert.equal(result.ciclo,null);
+result=ctx.bellmanSimple(['A'],[edge('A','A',-1)],'A',true);assert.ok(result.ciclo);
+result=ctx.bellmanSimple(['A','B','C'],[edge('B','C',-2),edge('C','B',1)],'A',true);assert.equal(result.ciclo,null);
+const base={nodos:[{id:'A',x:0,y:0},{id:'B'}],aristas:[edge('A','B',1)],origen:'A'};
+assert.equal(ctx.validarGrafo(base).nodos[0].x,0);
+for(const bad of [null,{}, {...base,nodos:[{id:'A'},{id:'A'}]}, {...base,aristas:[edge('A','X',1)]}, {...base,aristas:[edge('A','B',Infinity)]}, {...base,origen:'X'}, {...base,nodos:[{id:'__proto__'}]}, {...base,nodos:[{id:'<img>'}]}]) assert.throws(()=>ctx.validarGrafo(bad));
+console.log('Caminos mínimos, ciclos negativos y validación de grafos: OK');

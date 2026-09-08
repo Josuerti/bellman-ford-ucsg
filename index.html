@@ -722,7 +722,7 @@ function bellmanSimple(nodos, aristas, origen, optimizar){
   }
   let ciclo=null;
   for(const a of aristas){
-    if(dist[a.u]!==INF && dist[a.u]+a.w<dist[a.v]){ ciclo=reconstruirCiclo(pred,a.v,nodos.length); break; }
+    if(dist[a.u]!==INF && dist[a.u]+a.w<dist[a.v]){ pred[a.v]=a.u; ciclo=reconstruirCiclo(pred,a.v,nodos.length); break; }
   }
   return {dist,pred,ciclo,revisadas,vueltas};
 }
@@ -1042,6 +1042,28 @@ function exportarGrafo(){
   }, null, 2), "application/json");
 }
 
+function validarGrafo(d){
+  if(!d || !Array.isArray(d.nodos) || !Array.isArray(d.aristas) || !d.nodos.length)
+    throw new Error("Se requieren nodos y aristas");
+  const ids = new Set();
+  const nodos = d.nodos.map((n,i)=>{
+    if(!n || !['string','number'].includes(typeof n.id)) throw new Error("Nodo inválido");
+    const id = String(n.id);
+    if(!/^[A-Za-z0-9_-]{1,32}$/.test(id) || id in Object.prototype || id === 'prototype' || ids.has(id))
+      throw new Error("Identificador inválido o repetido");
+    ids.add(id);
+    return {id, x:Number.isFinite(n.x)?n.x:120+i*90, y:Number.isFinite(n.y)?n.y:226};
+  });
+  const aristas = d.aristas.map(a=>{
+    if(!a || !ids.has(String(a.u)) || !ids.has(String(a.v)) || typeof a.w !== 'number' || !Number.isFinite(a.w))
+      throw new Error("Arista inválida");
+    return {u:String(a.u),v:String(a.v),w:a.w};
+  });
+  const origen = d.origen == null ? nodos[0].id : String(d.origen);
+  if(!ids.has(origen)) throw new Error("Origen inexistente");
+  return {nodos,aristas,origen};
+}
+
 function importarGrafo(ev){
   const f=ev.target.files && ev.target.files[0];
   if(!f) return;
@@ -1049,14 +1071,8 @@ function importarGrafo(ev){
   lector.onload=()=>{
     try{
       const d=JSON.parse(lector.result);
-      if(!Array.isArray(d.nodos)||!Array.isArray(d.aristas)) throw new Error("estructura inválida");
-      // Un identificador como "__proto__" no se puede usar como clave de un objeto plano.
-      const prohibidos=["__proto__","constructor","prototype"];
-      if(d.nodos.some(n=>prohibidos.indexOf(String(n.id))>=0))
-        throw new Error("identificador de nodo no permitido");
-      G={ nodos:d.nodos.map((n,i)=>({id:String(n.id), x:Number(n.x)||120+i*90, y:Number(n.y)||226})),
-          aristas:d.aristas.map(a=>({u:String(a.u), v:String(a.v), w:Number(a.w)})),
-          origen: d.origen || (d.nodos[0] && String(d.nodos[0].id)) };
+      const nuevoGrafo = validarGrafo(d);
+      G = nuevoGrafo;
       rutaDestacada="";
       reiniciar(); construirSVG(); llenarOrigen();
       avisoSimulador(`Grafo cargado: ${G.nodos.length} nodos y ${G.aristas.length} aristas.`);
@@ -1475,3 +1491,4 @@ ejecutar();          // deja la simulación calculada y detenida en el paso 0
 </script>
 </body>
 </html>
+
